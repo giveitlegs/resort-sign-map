@@ -710,6 +710,64 @@
             'Torres Mazatlan': { lat: 23.2494, lng: -106.4492 }
         };
 
+        // Valid Sign Types (PURPOSE/FUNCTION of the sign) - must match app
+        const VALID_SIGN_TYPES = [
+            'Wayfinding / Directional',
+            'Building Identification',
+            'Parking / Traffic',
+            'Exit / Entrance',
+            'Regulatory / Compliance',
+            'Pool Rules',
+            'Safety / Warning',
+            'ADA / Accessibility',
+            'Fire Safety',
+            'Room / Unit Number',
+            'Floor Directory',
+            'Amenity Identification',
+            'Hours of Operation',
+            'Menu Board',
+            'Welcome / Greeting',
+            'Promotional / Marketing',
+            'Event / Announcement',
+            'Monument Sign',
+            'Channel Letters',
+            'Pylon / Pole Sign',
+            'Marquee Sign',
+            'A-Frame / Sandwich Board',
+            'Banner',
+            'Construction / Temporary',
+            'Other'
+        ];
+
+        // Valid Sign Materials (WHAT the sign is made of) - must match app
+        const VALID_SIGN_MATERIALS = [
+            'Aluminum Composite (Dibond)',
+            'Aluminum (Solid)',
+            'Acrylic',
+            'PVC / Sintra',
+            'HDU (High-Density Urethane)',
+            'Gatorboard / Foamboard',
+            'Coroplast (Corrugated Plastic)',
+            'Sandblasted Wood',
+            'Painted Wood',
+            'Routed Wood',
+            'Stainless Steel',
+            'Brushed Aluminum',
+            'Brass / Bronze',
+            'Corten Steel (Rusted)',
+            'Vinyl Banner',
+            'Fabric / Mesh Banner',
+            'Magnetic',
+            'LED / Illuminated',
+            'Neon',
+            'Digital Display',
+            'Etched Glass',
+            'Cast Bronze / Aluminum',
+            'Stone / Granite',
+            'Concrete',
+            'Other / Unknown'
+        ];
+
         // Sign type colors - vibrant, distinct colors
         const SIGN_TYPE_COLORS = {
             'Wayfinding / Directional': '#1E90FF',
@@ -767,6 +825,28 @@
             'Concrete': '#808080',
             'Other / Unknown': '#808080'
         };
+
+        // Helper to validate and normalize sign type
+        function normalizeSignType(type) {
+            if (!type || type.trim() === '') return 'Other';
+            const trimmed = type.trim();
+            // Check if it's a valid type
+            if (VALID_SIGN_TYPES.includes(trimmed)) return trimmed;
+            // Check if it's actually a material (misplaced data)
+            if (VALID_SIGN_MATERIALS.includes(trimmed)) return 'Other';
+            return 'Other';
+        }
+
+        // Helper to validate and normalize sign material
+        function normalizeSignMaterial(material) {
+            if (!material || material.trim() === '') return 'Other / Unknown';
+            const trimmed = material.trim();
+            // Check if it's a valid material
+            if (VALID_SIGN_MATERIALS.includes(trimmed)) return trimmed;
+            // Check if it's actually a type (misplaced data)
+            if (VALID_SIGN_TYPES.includes(trimmed)) return 'Other / Unknown';
+            return 'Other / Unknown';
+        }
 
         // Default color for unknown types
         const DEFAULT_COLOR = '#0052A5';
@@ -871,17 +951,17 @@
                 resortSelect.appendChild(option);
             });
 
-            // Get unique sign types with counts
+            // Get unique sign types with counts (normalized to valid types only)
             const signTypeCounts = {};
             allSignData.forEach(s => {
-                const type = s.signType || 'Other';
+                const type = normalizeSignType(s.signType);
                 signTypeCounts[type] = (signTypeCounts[type] || 0) + 1;
             });
 
-            // Get unique sign materials with counts
+            // Get unique sign materials with counts (normalized to valid materials only)
             const signMaterialCounts = {};
             allSignData.forEach(s => {
-                const material = s.signMaterial || 'Other / Unknown';
+                const material = normalizeSignMaterial(s.signMaterial);
                 signMaterialCounts[material] = (signMaterialCounts[material] || 0) + 1;
             });
 
@@ -1056,14 +1136,14 @@
                     return false;
                 }
 
-                // Sign type filter
-                const signType = sign.signType || 'Other';
+                // Sign type filter (normalized)
+                const signType = normalizeSignType(sign.signType);
                 if (!signTypeFilters[signType]) {
                     return false;
                 }
 
-                // Sign material filter
-                const signMaterial = sign.signMaterial || 'Other / Unknown';
+                // Sign material filter (normalized)
+                const signMaterial = normalizeSignMaterial(sign.signMaterial);
                 if (!signMaterialFilters[signMaterial]) {
                     return false;
                 }
@@ -1080,7 +1160,7 @@
 
                 if (isNaN(lat) || isNaN(lng)) return;
 
-                const color = getSignTypeColor(sign.signType || 'Other');
+                const color = getSignTypeColor(normalizeSignType(sign.signType));
 
                 // Create custom icon
                 const icon = L.divIcon({

@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resort Sign Inventory Map</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0052A5 0%, #003d7a 100%);
+            color: white;
+            padding: 16px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.85;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo img {
+            height: 40px;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: white;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 999;
+        }
+
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .sidebar-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Filters */
+        .filter-group {
+            margin-bottom: 16px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .filter-select:hover {
+            border-color: #0052A5;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #0052A5;
+            box-shadow: 0 0 0 3px rgba(0,82,165,0.1);
+        }
+
+        /* Sign Type Checkboxes */
+        .sign-type-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .sign-type-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 4px;
+        }
+
+        .sign-type-item:hover {
+            background: #f5f5f5;
+        }
+
+        .sign-type-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .sign-type-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .sign-type-label {
+            font-size: 13px;
+            color: #333;
+            flex: 1;
+        }
+
+        .sign-type-count {
+            font-size: 12px;
+            color: #999;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0052A5;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Map */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Custom Marker Popup */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            min-width: 280px;
+        }
+
+        .popup-content {
+            padding: 16px;
+        }
+
+        .popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .popup-sign-id {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0052A5;
+        }
+
+        .popup-sign-type {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: #e8f4fc;
+            color: #0052A5;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .popup-resort {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .popup-location {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .popup-details {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .popup-details div {
+            margin-bottom: 4px;
+        }
+
+        .popup-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .popup-links {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .popup-link {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            background: #0052A5;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .popup-link:hover {
+            background: #003d7a;
+        }
+
+        .popup-link.secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .popup-link.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 180px;
+        }
+
+        .legend h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e5e5;
+            border-top-color: #0052A5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+            }
+
+            .legend {
+                bottom: 12px;
+                right: 12px;
+                max-height: 200px;
+            }
+        }
+
+        /* Select All / None buttons */
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            border-color: #0052A5;
+            color: #0052A5;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-logo">
+            <div>
+                <h1>Resort Sign Inventory</h1>
+                <div class="header-subtitle">Interactive Map Visualization</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <!-- Stats Section -->
+            <div class="sidebar-section">
+                <h3>Overview</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-signs">-</div>
+                        <div class="stat-label">Total Signs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-resorts">-</div>
+                        <div class="stat-label">Resorts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="visible-signs">-</div>
+                        <div class="stat-label">Visible</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="sign-types-count">-</div>
+                        <div class="stat-label">Sign Types</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resort Filter -->
+            <div class="sidebar-section">
+                <h3>Filter by Resort</h3>
+                <div class="filter-group">
+                    <select id="resort-filter" class="filter-select">
+                        <option value="all">All Resorts</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Sign Type Filter -->
+            <div class="sidebar-section">
+                <h3>Filter by Sign Type</h3>
+                <div class="filter-actions">
+                    <button class="filter-btn" onclick="selectAllSignTypes()">Select All</button>
+                    <button class="filter-btn" onclick="selectNoneSignTypes()">Select None</button>
+                </div>
+                <div class="sign-type-list" id="sign-type-filters">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </aside>
+
+        <main class="map-container">
+            <div id="map"></div>
+
+            <!-- Legend -->
+            <div class="legend" id="legend">
+                <h4>Sign Types</h4>
+                <div id="legend-items">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Loading Overlay -->
+            <div class="loading-overlay" id="loading">
+                <div style="text-align: center;">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading sign data...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Papa Parse for CSV parsing -->
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            // Google Sheets published CSV URL
+            // To get this: File > Share > Publish to web > Select sheet > CSV > Publish
+            // Replace YOUR_SPREADSHEET_ID with: 12AZfFTwum7mg26cGl7E_2UZXKrgVnX8YVQnEZWFPGMU
+            SHEET_CSV_URL: 'https://docs.google.com/spreadsheets/d/12AZfFTwum7mg26cGl7E_2UZXKrgVnX8YVQnEZWFPGMU/gviz/tq?tqx=out:csv&sheet=Sign%20Inventory',
+
+            // Default map center (Orlando, FL area)
+            DEFAULT_CENTER: [28.4, -81.5],
+            DEFAULT_ZOOM: 8,
+
+            // Refresh interval (5 minutes)
+            REFRESH_INTERVAL: 300000
+        };
+
+        // Sign type colors - vibrant, distinct colors
+        const SIGN_TYPE_COLORS = {
+            'Sandblasted Wood': '#8B4513',
+            'PVC / Sintra': '#4169E1',
+            'Gatorboard': '#32CD32',
+            'Metal / Aluminum': '#708090',
+            'Aluminum Composite (Dibond)': '#A9A9A9',
+            'Acrylic': '#00CED1',
+            'HDU (High-Density Urethane)': '#9370DB',
+            'Coroplast (Corrugated Plastic)': '#FF6347',
+            'Vinyl Banner': '#FF69B4',
+            'Monument Sign': '#2F4F4F',
+            'Channel Letters': '#FFD700',
+            'A-Frame / Sandwich Board': '#FF8C00',
+            'Marquee Sign': '#DC143C',
+            'Pylon / Pole Sign': '#4682B4',
+            'Post & Panel Sign': '#6B8E23',
+            'Tabletop Sign': '#DDA0DD',
+            'Digital Display / LED': '#00FF7F',
+            'Wayfinding / Directional': '#1E90FF',
+            'Regulatory / Compliance': '#B22222',
+            'Pool Rules Sign': '#20B2AA',
+            'Safety Sign': '#FF4500',
+            'Menu Board': '#8FBC8F',
+            'Room / Unit Number': '#CD853F',
+            'ADA / Braille Sign': '#6A5ACD',
+            'Other': '#808080'
+        };
+
+        // Default color for unknown sign types
+        const DEFAULT_COLOR = '#0052A5';
+
+        // Global state
+        let map;
+        let markers = [];
+        let allSignData = [];
+        let signTypeFilters = {};
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadSignData();
+
+            // Auto-refresh
+            setInterval(loadSignData, CONFIG.REFRESH_INTERVAL);
+        });
+
+        // Initialize Leaflet map
+        function initMap() {
+            map = L.map('map').setView(CONFIG.DEFAULT_CENTER, CONFIG.DEFAULT_ZOOM);
+
+            // Add OpenStreetMap tiles (free, no API key needed)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        // Load sign data from Google Sheets
+        async function loadSignData() {
+            try {
+                showLoading(true);
+
+                const response = await fetch(CONFIG.SHEET_CSV_URL);
+                const csvText = await response.text();
+
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        allSignData = results.data.filter(row =>
+                            row.latitude && row.longitude &&
+                            !isNaN(parseFloat(row.latitude)) &&
+                            !isNaN(parseFloat(row.longitude))
+                        );
+
+                        populateFilters();
+                        updateMap();
+                        updateStats();
+                        showLoading(false);
+                    },
+                    error: function(error) {
+                        console.error('Error parsing CSV:', error);
+                        showLoading(false);
+                        alert('Error loading sign data. Make sure the Google Sheet is published to the web.');
+                    }
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showLoading(false);
+                alert('Error loading sign data. Check console for details.');
+            }
+        }
+
+        // Populate filter dropdowns and checkboxes
+        function populateFilters() {
+            // Get unique resorts
+            const resorts = [...new Set(allSignData.map(s => s.resortName))].sort();
+            const resortSelect = document.getElementById('resort-filter');
+            resortSelect.innerHTML = '<option value="all">All Resorts</option>';
+            resorts.forEach(resort => {
+                if (resort) {
+                    const option = document.createElement('option');
+                    option.value = resort;
+                    option.textContent = resort;
+                    resortSelect.appendChild(option);
+                }
+            });
+
+            // Get unique sign types with counts
+            const signTypeCounts = {};
+            allSignData.forEach(s => {
+                const type = s.signType || 'Other';
+                signTypeCounts[type] = (signTypeCounts[type] || 0) + 1;
+            });
+
+            const signTypes = Object.keys(signTypeCounts).sort();
+            const signTypeContainer = document.getElementById('sign-type-filters');
+            const legendContainer = document.getElementById('legend-items');
+
+            signTypeContainer.innerHTML = '';
+            legendContainer.innerHTML = '';
+
+            signTypes.forEach(type => {
+                const color = getSignTypeColor(type);
+
+                // Initialize filter state (all checked by default)
+                if (signTypeFilters[type] === undefined) {
+                    signTypeFilters[type] = true;
+                }
+
+                // Sidebar checkbox
+                const item = document.createElement('div');
+                item.className = 'sign-type-item';
+                item.innerHTML = `
+                    <input type="checkbox" class="sign-type-checkbox"
+                           id="filter-${type.replace(/[^a-zA-Z0-9]/g, '_')}"
+                           ${signTypeFilters[type] ? 'checked' : ''}
+                           onchange="toggleSignType('${type.replace(/'/g, "\\'")}', this.checked)">
+                    <div class="sign-type-color" style="background: ${color}"></div>
+                    <span class="sign-type-label">${type}</span>
+                    <span class="sign-type-count">${signTypeCounts[type]}</span>
+                `;
+                signTypeContainer.appendChild(item);
+
+                // Legend item
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.innerHTML = `
+                    <div class="legend-color" style="background: ${color}"></div>
+                    <span>${type}</span>
+                `;
+                legendContainer.appendChild(legendItem);
+            });
+
+            // Add event listener for resort filter
+            resortSelect.addEventListener('change', updateMap);
+        }
+
+        // Get color for sign type
+        function getSignTypeColor(signType) {
+            return SIGN_TYPE_COLORS[signType] || DEFAULT_COLOR;
+        }
+
+        // Toggle sign type filter
+        function toggleSignType(type, checked) {
+            signTypeFilters[type] = checked;
+            updateMap();
+        }
+
+        // Select all sign types
+        function selectAllSignTypes() {
+            Object.keys(signTypeFilters).forEach(type => {
+                signTypeFilters[type] = true;
+            });
+            document.querySelectorAll('.sign-type-checkbox').forEach(cb => cb.checked = true);
+            updateMap();
+        }
+
+        // Select no sign types
+        function selectNoneSignTypes() {
+            Object.keys(signTypeFilters).forEach(type => {
+                signTypeFilters[type] = false;
+            });
+            document.querySelectorAll('.sign-type-checkbox').forEach(cb => cb.checked = false);
+            updateMap();
+        }
+
+        // Update map markers
+        function updateMap() {
+            // Clear existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            // Get filter values
+            const selectedResort = document.getElementById('resort-filter').value;
+
+            // Filter data
+            const filteredData = allSignData.filter(sign => {
+                // Resort filter
+                if (selectedResort !== 'all' && sign.resortName !== selectedResort) {
+                    return false;
+                }
+
+                // Sign type filter
+                const signType = sign.signType || 'Other';
+                if (!signTypeFilters[signType]) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Add markers
+            const bounds = [];
+
+            filteredData.forEach(sign => {
+                const lat = parseFloat(sign.latitude);
+                const lng = parseFloat(sign.longitude);
+
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const color = getSignTypeColor(sign.signType || 'Other');
+
+                // Create custom icon
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="
+                        width: 24px;
+                        height: 24px;
+                        background: ${color};
+                        border: 3px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    "></div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const marker = L.marker([lat, lng], { icon: icon });
+
+                // Create popup content
+                const popupContent = createPopupContent(sign);
+                marker.bindPopup(popupContent, {
+                    maxWidth: 320,
+                    className: 'custom-popup'
+                });
+
+                // Show popup on hover (optional - can be click only)
+                marker.on('mouseover', function() {
+                    this.openPopup();
+                });
+
+                marker.addTo(map);
+                markers.push(marker);
+                bounds.push([lat, lng]);
+            });
+
+            // Fit map to markers
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+
+            // Update visible count
+            document.getElementById('visible-signs').textContent = filteredData.length;
+        }
+
+        // Create popup content for a sign
+        function createPopupContent(sign) {
+            const imageHtml = sign.photoUrls ?
+                `<img src="${sign.photoUrls.split(',')[0]}" class="popup-image" onerror="this.style.display='none'" alt="Sign photo">` : '';
+
+            const slideLink = sign.gammaSlideUrl ?
+                `<a href="${sign.gammaSlideUrl}" target="_blank" class="popup-link">View Slide</a>` : '';
+
+            const mapsLink = `<a href="https://www.google.com/maps?q=${sign.latitude},${sign.longitude}" target="_blank" class="popup-link secondary">Open in Maps</a>`;
+
+            return `
+                <div class="popup-content">
+                    ${imageHtml}
+                    <div class="popup-header">
+                        <span class="popup-sign-id">${sign.signId || 'N/A'}</span>
+                        <span class="popup-sign-type">${sign.signType || 'Unknown'}</span>
+                    </div>
+                    <div class="popup-resort">${sign.resortName || 'Unknown Resort'}</div>
+                    <div class="popup-location">${sign.locationDescription || 'No description'}</div>
+                    <div class="popup-details">
+                        <div><strong>GPS:</strong> ${parseFloat(sign.latitude).toFixed(6)}, ${parseFloat(sign.longitude).toFixed(6)}</div>
+                        <div><strong>Accuracy:</strong> ±${sign.accuracy || '?'}m</div>
+                        <div><strong>Captured:</strong> ${sign.timestamp || 'Unknown'}</div>
+                        ${sign.marketingManager ? `<div><strong>Marketing:</strong> ${sign.marketingManager}</div>` : ''}
+                        ${sign.contactName ? `<div><strong>Contact:</strong> ${sign.contactName}</div>` : ''}
+                    </div>
+                    <div class="popup-links">
+                        ${slideLink}
+                        ${mapsLink}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update statistics
+        function updateStats() {
+            const totalSigns = allSignData.length;
+            const resorts = new Set(allSignData.map(s => s.resortName)).size;
+            const signTypes = new Set(allSignData.map(s => s.signType)).size;
+
+            document.getElementById('total-signs').textContent = totalSigns;
+            document.getElementById('total-resorts').textContent = resorts;
+            document.getElementById('visible-signs').textContent = totalSigns;
+            document.getElementById('sign-types-count').textContent = signTypes;
+        }
+
+        // Show/hide loading overlay
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+    </script>
+</body>
+</html>

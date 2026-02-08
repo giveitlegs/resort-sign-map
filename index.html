@@ -33,6 +33,14 @@
             z-index: 1000;
         }
 
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
         .header h1 {
             font-size: 24px;
             font-weight: 700;
@@ -52,6 +60,93 @@
 
         .header-logo img {
             height: 40px;
+        }
+
+        /* Sign Lookup */
+        .sign-lookup {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .lookup-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 4px 4px 4px 12px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .lookup-input-wrapper:focus-within {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .lookup-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        #sign-lookup-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            padding: 8px 12px;
+            width: 180px;
+            outline: none;
+        }
+
+        #sign-lookup-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        #sign-lookup-btn {
+            background: white;
+            color: #0052A5;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #sign-lookup-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.02);
+        }
+
+        .lookup-error {
+            font-size: 12px;
+            color: #ffcdd2;
+            min-height: 16px;
+            text-align: right;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .sign-lookup {
+                width: 100%;
+            }
+
+            .lookup-input-wrapper {
+                width: 100%;
+            }
+
+            #sign-lookup-input {
+                flex: 1;
+                width: auto;
+            }
         }
 
         /* Main Layout */
@@ -451,10 +546,24 @@
 </head>
 <body>
     <header class="header">
-        <div class="header-logo">
-            <div>
-                <h1>Resort Sign Inventory</h1>
-                <div class="header-subtitle">Interactive Map Visualization</div>
+        <div class="header-content">
+            <div class="header-logo">
+                <div>
+                    <h1>Resort Sign Inventory</h1>
+                    <div class="header-subtitle">Interactive Map Visualization</div>
+                </div>
+            </div>
+            <div class="sign-lookup">
+                <div class="lookup-input-wrapper">
+                    <svg class="lookup-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <input type="text" id="sign-lookup-input" placeholder="Sign ID (e.g., VV000001)" autocomplete="off">
+                    <button id="sign-lookup-btn" onclick="lookupSign()">
+                        <span>Find</span>
+                    </button>
+                </div>
+                <div id="lookup-error" class="lookup-error"></div>
             </div>
         </div>
     </header>
@@ -1069,6 +1178,79 @@
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'flex' : 'none';
         }
+
+        // Sign Lookup function
+        function lookupSign() {
+            const input = document.getElementById('sign-lookup-input');
+            const errorDiv = document.getElementById('lookup-error');
+            const searchTerm = input.value.trim().toUpperCase();
+
+            errorDiv.textContent = '';
+
+            if (!searchTerm) {
+                errorDiv.textContent = 'Please enter a Sign ID';
+                return;
+            }
+
+            // Find the sign by ID (case-insensitive)
+            const sign = allSignData.find(s =>
+                s.signId && s.signId.toUpperCase() === searchTerm
+            );
+
+            if (!sign) {
+                errorDiv.textContent = `Sign "${searchTerm}" not found`;
+                return;
+            }
+
+            // Check if sign has valid coordinates
+            const lat = parseFloat(sign.latitude);
+            const lng = parseFloat(sign.longitude);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                errorDiv.textContent = 'Sign found but has no GPS coordinates';
+                return;
+            }
+
+            // Clear filters to ensure the sign is visible
+            selectAllFilters('type');
+            selectAllFilters('material');
+            document.getElementById('resort-filter').value = 'all';
+
+            // Center map on the sign and zoom in
+            map.setView([lat, lng], 18);
+
+            // Find the marker for this sign and open its popup
+            const marker = markers.find(m => {
+                const markerLatLng = m.getLatLng();
+                return Math.abs(markerLatLng.lat - lat) < 0.0001 &&
+                       Math.abs(markerLatLng.lng - lng) < 0.0001;
+            });
+
+            if (marker) {
+                // Small delay to ensure map has panned
+                setTimeout(() => {
+                    marker.openPopup();
+                }, 300);
+            }
+
+            // Highlight the input briefly to show success
+            input.style.background = 'rgba(76, 175, 80, 0.3)';
+            setTimeout(() => {
+                input.style.background = 'transparent';
+            }, 500);
+        }
+
+        // Allow Enter key to trigger search
+        document.addEventListener('DOMContentLoaded', function() {
+            const lookupInput = document.getElementById('sign-lookup-input');
+            if (lookupInput) {
+                lookupInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        lookupSign();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

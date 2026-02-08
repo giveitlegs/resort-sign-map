@@ -62,7 +62,7 @@
 
         /* Sidebar */
         .sidebar {
-            width: 320px;
+            width: 340px;
             background: white;
             box-shadow: 2px 0 8px rgba(0,0,0,0.1);
             overflow-y: auto;
@@ -117,51 +117,51 @@
             box-shadow: 0 0 0 3px rgba(0,82,165,0.1);
         }
 
-        /* Sign Type Checkboxes */
-        .sign-type-list {
-            max-height: 300px;
+        /* Sign Type/Material Checkboxes */
+        .filter-list {
+            max-height: 200px;
             overflow-y: auto;
         }
 
-        .sign-type-item {
+        .filter-item {
             display: flex;
             align-items: center;
-            padding: 8px 0;
+            padding: 6px 0;
             cursor: pointer;
             transition: background 0.2s;
             border-radius: 4px;
         }
 
-        .sign-type-item:hover {
+        .filter-item:hover {
             background: #f5f5f5;
         }
 
-        .sign-type-checkbox {
-            width: 18px;
-            height: 18px;
-            margin-right: 10px;
+        .filter-checkbox {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
             cursor: pointer;
         }
 
-        .sign-type-color {
-            width: 14px;
-            height: 14px;
+        .filter-color {
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 6px;
             flex-shrink: 0;
         }
 
-        .sign-type-label {
-            font-size: 13px;
+        .filter-label {
+            font-size: 12px;
             color: #333;
             flex: 1;
         }
 
-        .sign-type-count {
-            font-size: 12px;
+        .filter-count {
+            font-size: 11px;
             color: #999;
             background: #f0f0f0;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 10px;
         }
 
@@ -234,8 +234,8 @@
         }
 
         .popup-sign-type {
-            font-size: 11px;
-            padding: 4px 8px;
+            font-size: 10px;
+            padding: 3px 6px;
             background: #e8f4fc;
             color: #0052A5;
             border-radius: 4px;
@@ -246,6 +246,12 @@
             font-size: 14px;
             font-weight: 600;
             color: #333;
+            margin-bottom: 4px;
+        }
+
+        .popup-type-material {
+            font-size: 12px;
+            color: #666;
             margin-bottom: 8px;
         }
 
@@ -401,16 +407,16 @@
         .filter-actions {
             display: flex;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .filter-btn {
             flex: 1;
-            padding: 6px 12px;
+            padding: 5px 10px;
             border: 1px solid #ddd;
             background: white;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -418,6 +424,28 @@
         .filter-btn:hover {
             border-color: #0052A5;
             color: #0052A5;
+        }
+
+        /* Collapsible sections */
+        .section-toggle {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-toggle::after {
+            content: '\25BC';
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .section-toggle.collapsed::after {
+            transform: rotate(-90deg);
+        }
+
+        .section-content.collapsed {
+            display: none;
         }
     </style>
 </head>
@@ -468,13 +496,29 @@
 
             <!-- Sign Type Filter -->
             <div class="sidebar-section">
-                <h3>Filter by Sign Type</h3>
-                <div class="filter-actions">
-                    <button class="filter-btn" onclick="selectAllSignTypes()">Select All</button>
-                    <button class="filter-btn" onclick="selectNoneSignTypes()">Select None</button>
+                <h3 class="section-toggle" onclick="toggleSection('type')">Filter by Sign Type</h3>
+                <div class="section-content" id="type-section">
+                    <div class="filter-actions">
+                        <button class="filter-btn" onclick="selectAllFilters('type')">All</button>
+                        <button class="filter-btn" onclick="selectNoneFilters('type')">None</button>
+                    </div>
+                    <div class="filter-list" id="sign-type-filters">
+                        <!-- Populated by JavaScript -->
+                    </div>
                 </div>
-                <div class="sign-type-list" id="sign-type-filters">
-                    <!-- Populated by JavaScript -->
+            </div>
+
+            <!-- Sign Material Filter -->
+            <div class="sidebar-section">
+                <h3 class="section-toggle" onclick="toggleSection('material')">Filter by Material</h3>
+                <div class="section-content" id="material-section">
+                    <div class="filter-actions">
+                        <button class="filter-btn" onclick="selectAllFilters('material')">All</button>
+                        <button class="filter-btn" onclick="selectNoneFilters('material')">None</button>
+                    </div>
+                    <div class="filter-list" id="sign-material-filters">
+                        <!-- Populated by JavaScript -->
+                    </div>
                 </div>
             </div>
         </aside>
@@ -520,36 +564,102 @@
             REFRESH_INTERVAL: 300000
         };
 
+        // Resort coordinates for centering map when selected
+        const RESORT_COORDINATES = {
+            'Westgate Lakes Resort & Spa': { lat: 28.4375, lng: -81.4847 },
+            'Westgate Town Center Resort': { lat: 28.3389, lng: -81.5986 },
+            'Westgate Vacation Villas Resort': { lat: 28.3453, lng: -81.6019 },
+            'Westgate Palace': { lat: 28.4461, lng: -81.4722 },
+            'Westgate Towers Resort': { lat: 28.4356, lng: -81.4703 },
+            'Westgate Blue Tree Resort': { lat: 28.3747, lng: -81.5092 },
+            'Westgate Leisure Resort': { lat: 28.3892, lng: -81.4953 },
+            'Westgate Cocoa Beach Resort': { lat: 28.3697, lng: -80.6061 },
+            'Westgate River Ranch Resort & Rodeo': { lat: 27.7894, lng: -81.1533 },
+            'Westgate Smoky Mountain Resort & Water Park': { lat: 35.7103, lng: -83.5192 },
+            'River Terrace Resort & Convention Center': { lat: 35.7144, lng: -83.5156 },
+            'Wild Bear Inn': { lat: 35.7939, lng: -83.5542 },
+            'Westgate Branson Woods Resort': { lat: 36.6661, lng: -93.2847 },
+            'Westgate Branson Lakes Resort': { lat: 36.5972, lng: -93.2308 },
+            'Westgate Las Vegas Resort & Casino': { lat: 36.1281, lng: -115.1525 },
+            'Westgate Flamingo Bay Resort': { lat: 36.1150, lng: -115.2028 },
+            'Tahoe Trail': { lat: 38.9536, lng: -119.9425 },
+            'Kingsbury of Tahoe': { lat: 38.9561, lng: -119.9439 },
+            'Westgate Myrtle Beach Oceanfront Resort': { lat: 33.6897, lng: -78.8867 },
+            'Westgate Park City Resort & Spa': { lat: 40.6844, lng: -111.5228 },
+            'Westgate Historic Williamsburg Resort': { lat: 37.2761, lng: -76.7556 },
+            'Westgate Painted Mountain Golf Resort': { lat: 33.4556, lng: -111.7369 },
+            'The Village at Steamboat': { lat: 40.4697, lng: -106.8106 },
+            'The Oasis': { lat: 33.7881, lng: -116.4928 },
+            'Westgate New York Grand Central': { lat: 40.7506, lng: -73.9736 },
+            'The Pines at Sunriver': { lat: 43.8756, lng: -121.4378 },
+            'VI at Homestead': { lat: 48.9469, lng: -122.4458 },
+            'Royal Kuhio': { lat: 21.2769, lng: -157.8250 },
+            'Sea Mountain': { lat: 19.2008, lng: -155.4347 },
+            'Sea Village': { lat: 19.5800, lng: -155.9714 },
+            'VI at Rosedale on Robson': { lat: 49.2781, lng: -123.1186 },
+            'Pinnacle Lodge': { lat: 50.8833, lng: -119.9000 },
+            'Torres Mazatlan': { lat: 23.2494, lng: -106.4492 }
+        };
+
         // Sign type colors - vibrant, distinct colors
         const SIGN_TYPE_COLORS = {
-            'Sandblasted Wood': '#8B4513',
-            'PVC / Sintra': '#4169E1',
-            'Gatorboard': '#32CD32',
-            'Metal / Aluminum': '#708090',
-            'Aluminum Composite (Dibond)': '#A9A9A9',
-            'Acrylic': '#00CED1',
-            'HDU (High-Density Urethane)': '#9370DB',
-            'Coroplast (Corrugated Plastic)': '#FF6347',
-            'Vinyl Banner': '#FF69B4',
-            'Monument Sign': '#2F4F4F',
-            'Channel Letters': '#FFD700',
-            'A-Frame / Sandwich Board': '#FF8C00',
-            'Marquee Sign': '#DC143C',
-            'Pylon / Pole Sign': '#4682B4',
-            'Post & Panel Sign': '#6B8E23',
-            'Tabletop Sign': '#DDA0DD',
-            'Digital Display / LED': '#00FF7F',
             'Wayfinding / Directional': '#1E90FF',
+            'Building Identification': '#4682B4',
+            'Parking / Traffic': '#2F4F4F',
+            'Exit / Entrance': '#228B22',
             'Regulatory / Compliance': '#B22222',
-            'Pool Rules Sign': '#20B2AA',
-            'Safety Sign': '#FF4500',
-            'Menu Board': '#8FBC8F',
+            'Pool Rules': '#20B2AA',
+            'Safety / Warning': '#FF4500',
+            'ADA / Accessibility': '#6A5ACD',
+            'Fire Safety': '#DC143C',
             'Room / Unit Number': '#CD853F',
-            'ADA / Braille Sign': '#6A5ACD',
+            'Floor Directory': '#708090',
+            'Amenity Identification': '#32CD32',
+            'Hours of Operation': '#4169E1',
+            'Menu Board': '#8FBC8F',
+            'Welcome / Greeting': '#FFD700',
+            'Promotional / Marketing': '#FF69B4',
+            'Event / Announcement': '#FF8C00',
+            'Monument Sign': '#8B4513',
+            'Channel Letters': '#FFD700',
+            'Pylon / Pole Sign': '#4682B4',
+            'Marquee Sign': '#DC143C',
+            'A-Frame / Sandwich Board': '#FF8C00',
+            'Banner': '#FF69B4',
+            'Construction / Temporary': '#808080',
             'Other': '#808080'
         };
 
-        // Default color for unknown sign types
+        // Sign material colors
+        const SIGN_MATERIAL_COLORS = {
+            'Aluminum Composite (Dibond)': '#A9A9A9',
+            'Aluminum (Solid)': '#708090',
+            'Acrylic': '#00CED1',
+            'PVC / Sintra': '#4169E1',
+            'HDU (High-Density Urethane)': '#9370DB',
+            'Gatorboard / Foamboard': '#32CD32',
+            'Coroplast (Corrugated Plastic)': '#FF6347',
+            'Sandblasted Wood': '#8B4513',
+            'Painted Wood': '#A0522D',
+            'Routed Wood': '#D2691E',
+            'Stainless Steel': '#C0C0C0',
+            'Brushed Aluminum': '#B0C4DE',
+            'Brass / Bronze': '#B8860B',
+            'Corten Steel (Rusted)': '#8B4513',
+            'Vinyl Banner': '#FF69B4',
+            'Fabric / Mesh Banner': '#DDA0DD',
+            'Magnetic': '#4682B4',
+            'LED / Illuminated': '#00FF7F',
+            'Neon': '#FF00FF',
+            'Digital Display': '#00CED1',
+            'Etched Glass': '#E0FFFF',
+            'Cast Bronze / Aluminum': '#CD7F32',
+            'Stone / Granite': '#696969',
+            'Concrete': '#808080',
+            'Other / Unknown': '#808080'
+        };
+
+        // Default color for unknown types
         const DEFAULT_COLOR = '#0052A5';
 
         // Global state
@@ -557,6 +667,7 @@
         let markers = [];
         let allSignData = [];
         let signTypeFilters = {};
+        let signMaterialFilters = {};
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -598,6 +709,7 @@
                                 timestamp: row['Date and timestamp'],
                                 resortName: row['Property'],
                                 signType: row['Sign Type'],
+                                signMaterial: row['Sign Material'] || row['Material'] || '',
                                 locationDescription: row['Description of Location'],
                                 latitude: row['Latitude'],
                                 longitude: row['Longitude'],
@@ -639,16 +751,14 @@
         // Populate filter dropdowns and checkboxes
         function populateFilters() {
             // Get unique resorts
-            const resorts = [...new Set(allSignData.map(s => s.resortName))].sort();
+            const resorts = [...new Set(allSignData.map(s => s.resortName))].filter(r => r).sort();
             const resortSelect = document.getElementById('resort-filter');
             resortSelect.innerHTML = '<option value="all">All Resorts</option>';
             resorts.forEach(resort => {
-                if (resort) {
-                    const option = document.createElement('option');
-                    option.value = resort;
-                    option.textContent = resort;
-                    resortSelect.appendChild(option);
-                }
+                const option = document.createElement('option');
+                option.value = resort;
+                option.textContent = resort;
+                resortSelect.appendChild(option);
             });
 
             // Get unique sign types with counts
@@ -658,6 +768,14 @@
                 signTypeCounts[type] = (signTypeCounts[type] || 0) + 1;
             });
 
+            // Get unique sign materials with counts
+            const signMaterialCounts = {};
+            allSignData.forEach(s => {
+                const material = s.signMaterial || 'Other / Unknown';
+                signMaterialCounts[material] = (signMaterialCounts[material] || 0) + 1;
+            });
+
+            // Populate sign type filters
             const signTypes = Object.keys(signTypeCounts).sort();
             const signTypeContainer = document.getElementById('sign-type-filters');
             const legendContainer = document.getElementById('legend-items');
@@ -675,15 +793,15 @@
 
                 // Sidebar checkbox
                 const item = document.createElement('div');
-                item.className = 'sign-type-item';
+                item.className = 'filter-item';
                 item.innerHTML = `
-                    <input type="checkbox" class="sign-type-checkbox"
-                           id="filter-${type.replace(/[^a-zA-Z0-9]/g, '_')}"
+                    <input type="checkbox" class="filter-checkbox type-checkbox"
+                           data-type="${type}"
                            ${signTypeFilters[type] ? 'checked' : ''}
-                           onchange="toggleSignType('${type.replace(/'/g, "\\'")}', this.checked)">
-                    <div class="sign-type-color" style="background: ${color}"></div>
-                    <span class="sign-type-label">${type}</span>
-                    <span class="sign-type-count">${signTypeCounts[type]}</span>
+                           onchange="toggleFilter('type', '${type.replace(/'/g, "\\'")}', this.checked)">
+                    <div class="filter-color" style="background: ${color}"></div>
+                    <span class="filter-label">${type}</span>
+                    <span class="filter-count">${signTypeCounts[type]}</span>
                 `;
                 signTypeContainer.appendChild(item);
 
@@ -697,8 +815,59 @@
                 legendContainer.appendChild(legendItem);
             });
 
+            // Populate sign material filters
+            const signMaterials = Object.keys(signMaterialCounts).sort();
+            const signMaterialContainer = document.getElementById('sign-material-filters');
+            signMaterialContainer.innerHTML = '';
+
+            signMaterials.forEach(material => {
+                const color = getMaterialColor(material);
+
+                // Initialize filter state (all checked by default)
+                if (signMaterialFilters[material] === undefined) {
+                    signMaterialFilters[material] = true;
+                }
+
+                // Sidebar checkbox
+                const item = document.createElement('div');
+                item.className = 'filter-item';
+                item.innerHTML = `
+                    <input type="checkbox" class="filter-checkbox material-checkbox"
+                           data-material="${material}"
+                           ${signMaterialFilters[material] ? 'checked' : ''}
+                           onchange="toggleFilter('material', '${material.replace(/'/g, "\\'")}', this.checked)">
+                    <div class="filter-color" style="background: ${color}"></div>
+                    <span class="filter-label">${material}</span>
+                    <span class="filter-count">${signMaterialCounts[material]}</span>
+                `;
+                signMaterialContainer.appendChild(item);
+            });
+
             // Add event listener for resort filter
-            resortSelect.addEventListener('change', updateMap);
+            resortSelect.addEventListener('change', onResortChange);
+        }
+
+        // Handle resort filter change - center map on selected resort
+        function onResortChange() {
+            const selectedResort = document.getElementById('resort-filter').value;
+
+            if (selectedResort !== 'all') {
+                // Try to get coordinates from our lookup table
+                const coords = RESORT_COORDINATES[selectedResort];
+                if (coords) {
+                    map.setView([coords.lat, coords.lng], 15);
+                } else {
+                    // Fall back to centering on signs at this resort
+                    const resortSigns = allSignData.filter(s => s.resortName === selectedResort);
+                    if (resortSigns.length > 0) {
+                        const avgLat = resortSigns.reduce((sum, s) => sum + parseFloat(s.latitude), 0) / resortSigns.length;
+                        const avgLng = resortSigns.reduce((sum, s) => sum + parseFloat(s.longitude), 0) / resortSigns.length;
+                        map.setView([avgLat, avgLng], 15);
+                    }
+                }
+            }
+
+            updateMap();
         }
 
         // Get color for sign type
@@ -706,28 +875,59 @@
             return SIGN_TYPE_COLORS[signType] || DEFAULT_COLOR;
         }
 
-        // Toggle sign type filter
-        function toggleSignType(type, checked) {
-            signTypeFilters[type] = checked;
+        // Get color for sign material
+        function getMaterialColor(material) {
+            return SIGN_MATERIAL_COLORS[material] || DEFAULT_COLOR;
+        }
+
+        // Toggle filter
+        function toggleFilter(filterType, value, checked) {
+            if (filterType === 'type') {
+                signTypeFilters[value] = checked;
+            } else {
+                signMaterialFilters[value] = checked;
+            }
             updateMap();
         }
 
-        // Select all sign types
-        function selectAllSignTypes() {
-            Object.keys(signTypeFilters).forEach(type => {
-                signTypeFilters[type] = true;
-            });
-            document.querySelectorAll('.sign-type-checkbox').forEach(cb => cb.checked = true);
+        // Select all filters
+        function selectAllFilters(filterType) {
+            if (filterType === 'type') {
+                Object.keys(signTypeFilters).forEach(type => {
+                    signTypeFilters[type] = true;
+                });
+                document.querySelectorAll('.type-checkbox').forEach(cb => cb.checked = true);
+            } else {
+                Object.keys(signMaterialFilters).forEach(material => {
+                    signMaterialFilters[material] = true;
+                });
+                document.querySelectorAll('.material-checkbox').forEach(cb => cb.checked = true);
+            }
             updateMap();
         }
 
-        // Select no sign types
-        function selectNoneSignTypes() {
-            Object.keys(signTypeFilters).forEach(type => {
-                signTypeFilters[type] = false;
-            });
-            document.querySelectorAll('.sign-type-checkbox').forEach(cb => cb.checked = false);
+        // Select no filters
+        function selectNoneFilters(filterType) {
+            if (filterType === 'type') {
+                Object.keys(signTypeFilters).forEach(type => {
+                    signTypeFilters[type] = false;
+                });
+                document.querySelectorAll('.type-checkbox').forEach(cb => cb.checked = false);
+            } else {
+                Object.keys(signMaterialFilters).forEach(material => {
+                    signMaterialFilters[material] = false;
+                });
+                document.querySelectorAll('.material-checkbox').forEach(cb => cb.checked = false);
+            }
             updateMap();
+        }
+
+        // Toggle section collapse
+        function toggleSection(sectionId) {
+            const toggle = event.target;
+            const content = document.getElementById(sectionId + '-section');
+            toggle.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
         }
 
         // Update map markers
@@ -749,6 +949,12 @@
                 // Sign type filter
                 const signType = sign.signType || 'Other';
                 if (!signTypeFilters[signType]) {
+                    return false;
+                }
+
+                // Sign material filter
+                const signMaterial = sign.signMaterial || 'Other / Unknown';
+                if (!signMaterialFilters[signMaterial]) {
                     return false;
                 }
 
@@ -790,7 +996,7 @@
                     className: 'custom-popup'
                 });
 
-                // Show popup on hover (optional - can be click only)
+                // Show popup on hover
                 marker.on('mouseover', function() {
                     this.openPopup();
                 });
@@ -800,8 +1006,8 @@
                 bounds.push([lat, lng]);
             });
 
-            // Fit map to markers
-            if (bounds.length > 0) {
+            // Fit map to markers only if showing all resorts
+            if (selectedResort === 'all' && bounds.length > 0) {
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
 
@@ -819,6 +1025,8 @@
 
             const mapsLink = `<a href="https://www.google.com/maps?q=${sign.latitude},${sign.longitude}" target="_blank" class="popup-link secondary">Open in Maps</a>`;
 
+            const materialInfo = sign.signMaterial ? `<strong>Material:</strong> ${sign.signMaterial}` : '';
+
             return `
                 <div class="popup-content">
                     ${imageHtml}
@@ -827,10 +1035,11 @@
                         <span class="popup-sign-type">${sign.signType || 'Unknown'}</span>
                     </div>
                     <div class="popup-resort">${sign.resortName || 'Unknown Resort'}</div>
+                    ${sign.signMaterial ? `<div class="popup-type-material">${sign.signMaterial}</div>` : ''}
                     <div class="popup-location">${sign.locationDescription || 'No description'}</div>
                     <div class="popup-details">
                         <div><strong>GPS:</strong> ${parseFloat(sign.latitude).toFixed(6)}, ${parseFloat(sign.longitude).toFixed(6)}</div>
-                        <div><strong>Accuracy:</strong> ±${sign.accuracy || '?'}m</div>
+                        <div><strong>Accuracy:</strong> +/-${sign.accuracy || '?'}m</div>
                         <div><strong>Captured:</strong> ${sign.timestamp || 'Unknown'}</div>
                         ${sign.marketingManager ? `<div><strong>Marketing:</strong> ${sign.marketingManager}</div>` : ''}
                         ${sign.contactName ? `<div><strong>Contact:</strong> ${sign.contactName}</div>` : ''}

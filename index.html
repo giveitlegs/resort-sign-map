@@ -510,8 +510,6 @@
         // Configuration
         const CONFIG = {
             // Google Sheets published CSV URL
-            // To get this: File > Share > Publish to web > Select sheet > CSV > Publish
-            // Replace YOUR_SPREADSHEET_ID with: 12AZfFTwum7mg26cGl7E_2UZXKrgVnX8YVQnEZWFPGMU
             SHEET_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTWA73Tdab9WvKURDT73rzG2FtauxsDUGfV_7pGskBE41zlgLfOy-TsTNHII7PPssxfAx-lCZj8pgS-/pub?output=csv&gid=0',
 
             // Default map center (Orlando, FL area)
@@ -592,11 +590,33 @@
                     header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        allSignData = results.data.filter(row =>
-                            row.latitude && row.longitude &&
-                            !isNaN(parseFloat(row.latitude)) &&
-                            !isNaN(parseFloat(row.longitude))
-                        );
+                        // Map column names from Google Sheet to expected names
+                        allSignData = results.data
+                            .map(row => ({
+                                signId: row['Global Unique ID'],
+                                entryId: row['Unique String'],
+                                timestamp: row['Date and timestamp'],
+                                resortName: row['Property'],
+                                signType: row['Sign Type'],
+                                locationDescription: row['Description of Location'],
+                                latitude: row['Latitude'],
+                                longitude: row['Longitude'],
+                                accuracy: row['Margin of Error in Meters'],
+                                marketingManager: row['Marketing Manager'],
+                                contactName: row['Engineering Contact Name'],
+                                contactEmail: row['Engineering Contact Email'],
+                                contactPhone: row['Engineering Contact Phone'],
+                                wasRecentlyInstalled: row['Is this Sign Being Re-Installed'],
+                                lastInstallDate: row['Date and Timestamp of Re-Install'],
+                                photoUrls: row['Google Drive Link'],
+                                gammaSlideUrl: row['Google Slide Link'],
+                                uploadStatus: row['Status']
+                            }))
+                            .filter(row =>
+                                row.latitude && row.longitude &&
+                                !isNaN(parseFloat(row.latitude)) &&
+                                !isNaN(parseFloat(row.longitude))
+                            );
 
                         populateFilters();
                         updateMap();

@@ -702,27 +702,28 @@
                     skipEmptyLines: true,
                     complete: function(results) {
                         // Map column names from Google Sheet to expected names
+                        // Supports both old column names (from existing data) and new standardized names
                         allSignData = results.data
                             .map(row => ({
-                                signId: row['Global Unique ID'],
-                                entryId: row['Unique String'],
-                                timestamp: row['Date and timestamp'],
-                                resortName: row['Property'],
+                                signId: row['Sign ID'] || row['Global Unique ID'],
+                                entryId: row['Entry ID'] || row['Unique String'],
+                                timestamp: row['Date/Time'] || row['Date and timestamp'],
+                                resortName: row['Resort Name'] || row['Property'],
                                 signType: row['Sign Type'],
                                 signMaterial: row['Sign Material'] || row['Material'] || '',
-                                locationDescription: row['Description of Location'],
+                                locationDescription: row['Location Description'] || row['Description of Location'],
                                 latitude: row['Latitude'],
                                 longitude: row['Longitude'],
-                                accuracy: row['Margin of Error in Meters'],
+                                accuracy: row['GPS Accuracy (m)'] || row['Margin of Error in Meters'],
                                 marketingManager: row['Marketing Manager'],
-                                contactName: row['Engineering Contact Name'],
-                                contactEmail: row['Engineering Contact Email'],
-                                contactPhone: row['Engineering Contact Phone'],
-                                wasRecentlyInstalled: row['Is this Sign Being Re-Installed'],
-                                lastInstallDate: row['Date and Timestamp of Re-Install'],
-                                photoUrls: row['Google Drive Link'],
-                                gammaSlideUrl: row['Google Slide Link'],
-                                uploadStatus: row['Status']
+                                contactName: row['Contact Name'] || row['Engineering Contact Name'],
+                                contactEmail: row['Contact Email'] || row['Engineering Contact Email'],
+                                contactPhone: row['Contact Phone'] || row['Engineering Contact Phone'],
+                                wasRecentlyInstalled: row['Recently Installed'] || row['Is this Sign Being Re-Installed'],
+                                lastInstallDate: row['Install Date'] || row['Date and Timestamp of Re-Install'],
+                                photoUrls: row['Photo URLs'] || row['Google Drive Link'],
+                                gammaSlideUrl: row['Slide URL'] || row['Google Slide Link'],
+                                uploadStatus: row['Upload Status'] || row['Status']
                             }))
                             .filter(row =>
                                 row.latitude && row.longitude &&

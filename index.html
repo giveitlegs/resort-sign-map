@@ -558,7 +558,7 @@
                     <svg class="lookup-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                     </svg>
-                    <input type="text" id="sign-lookup-input" placeholder="Sign ID (e.g., VV000001)" autocomplete="off">
+                    <input type="text" id="sign-lookup-input" placeholder="Sign ID or asset tag" autocomplete="off">
                     <button id="sign-lookup-btn" onclick="lookupSign()">
                         <span>Find</span>
                     </button>
@@ -904,7 +904,8 @@
                                 latitude: row['Latitude'],
                                 longitude: row['Longitude'],
                                 accuracy: row['GPS Accuracy (m)'] || row['Margin of Error in Meters'],
-                                marketingManager: row['Marketing Manager'],
+                                marketingManager: row['Team Member Recording'] || row['Marketing Manager'],
+                                assetNumber: (row['Sign Asset Number'] || '').trim(),
                                 contactName: row['Contact Name'] || row['Engineering Contact Name'],
                                 contactEmail: row['Contact Email'] || row['Engineering Contact Email'],
                                 contactPhone: row['Contact Phone'] || row['Engineering Contact Phone'],
@@ -1231,7 +1232,8 @@
                         <div><strong>GPS:</strong> ${parseFloat(sign.latitude).toFixed(6)}, ${parseFloat(sign.longitude).toFixed(6)}</div>
                         <div><strong>Accuracy:</strong> +/-${sign.accuracy || '?'}m</div>
                         <div><strong>Captured:</strong> ${sign.timestamp || 'Unknown'}</div>
-                        ${sign.marketingManager ? `<div><strong>Marketing:</strong> ${sign.marketingManager}</div>` : ''}
+                        ${sign.assetNumber ? `<div><strong>Asset tag:</strong> ${sign.assetNumber}</div>` : ''}
+                        ${sign.marketingManager ? `<div><strong>Recorded by:</strong> ${sign.marketingManager}</div>` : ''}
                         ${sign.contactName ? `<div><strong>Contact:</strong> ${sign.contactName}</div>` : ''}
                     </div>
                     <div class="popup-links">
@@ -1268,17 +1270,26 @@
             errorDiv.textContent = '';
 
             if (!searchTerm) {
-                errorDiv.textContent = 'Please enter a Sign ID';
+                errorDiv.textContent = 'Enter a Sign ID or asset tag';
                 return;
             }
 
-            // Find the sign by ID (case-insensitive)
-            const sign = allSignData.find(s =>
-                s.signId && s.signId.toUpperCase() === searchTerm
+            const norm = v => (v || '').toUpperCase().replace(/[\s-]/g, '');
+            const target = norm(searchTerm);
+
+            // Exact match on Sign ID or asset tag, then a forgiving contains match
+            let sign = allSignData.find(s =>
+                norm(s.signId) === target || norm(s.assetNumber) === target
             );
+            if (!sign) {
+                sign = allSignData.find(s =>
+                    (norm(s.signId) && norm(s.signId).includes(target)) ||
+                    (norm(s.assetNumber) && norm(s.assetNumber).includes(target))
+                );
+            }
 
             if (!sign) {
-                errorDiv.textContent = `Sign "${searchTerm}" not found`;
+                errorDiv.textContent = `No sign matches "${searchTerm}"`;
                 return;
             }
 
